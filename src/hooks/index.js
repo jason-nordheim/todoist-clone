@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
 import { firebase } from "../firebase";
+import { collatedTasksExist } from "../helpers";
 import moment from "moment";
-
-const collatedTasksExists = () => {};
 
 export const useTasks = (selectedProject) => {
   const [tasks, setTasks] = useState([]);
@@ -15,7 +14,7 @@ export const useTasks = (selectedProject) => {
       .where("userId", "==", "7yFLIr7XSqGRvxmcfhId");
 
     unsubscribe =
-      selectedProject && !collatedTasksExists(selectedProject)
+      selectedProject && !collatedTasksExist(selectedProject)
         ? (unsubscribe = unsubscribe.where("projectId", "==", selectedProject))
         : selectedProject === "TODAY"
         ? (unsubscribe = unsubscribe.where(
@@ -47,4 +46,33 @@ export const useTasks = (selectedProject) => {
     return unsubscribe();
   }, [selectedProject]);
   return { tasks, archivedTasks };
+};
+
+export const useProjects = () => {
+  const [projects, setProjects] = useState([]);
+
+  useEffect(() => {
+    firebase
+      .firestore()
+      .collection("projects")
+      .where("userId", "==", "7yFLIr7XSqGRvxmcfhId")
+      .orderBy("projectId")
+      .get()
+      .then(
+        (snapShot) => {
+          const allProjects = snapShot.docs.map((project) => ({
+            ...project.data(),
+            docId: project.id,
+          }));
+
+          // only update the projects if
+          if (JSON.stringify(allProjects !== JSON.stringify(projects))) {
+            setProjects(allProjects);
+          }
+        },
+        [projects]
+      );
+
+    return { projects, setProjects };
+  });
 };
