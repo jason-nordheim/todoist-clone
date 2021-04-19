@@ -1,8 +1,10 @@
+/* eslint-disable no-nested-ternary */
 import { useState, useEffect } from "react";
+import moment from "moment";
 import { firebase } from "../firebase";
 import { collatedTasksExist } from "../helpers";
-import moment from "moment";
 
+export const userId = "7yFLIr7XSqGRvxmcfhId";
 export const useTasks = (selectedProject) => {
   const [tasks, setTasks] = useState([]);
   const [archivedTasks, setArchivedTasks] = useState([]);
@@ -11,26 +13,27 @@ export const useTasks = (selectedProject) => {
     let unsubscribe = firebase
       .firestore()
       .collection("tasks")
-      .where("userId", "==", "7yFLIr7XSqGRvxmcfhId");
+      .where("userId", "==", userId);
 
     unsubscribe =
       selectedProject && !collatedTasksExist(selectedProject)
         ? (unsubscribe = unsubscribe.where("projectId", "==", selectedProject))
         : selectedProject === "TODAY"
         ? (unsubscribe = unsubscribe.where(
-            "data",
+            "date",
             "==",
-            moment().format("DD/MM/YYY")
+            moment().format("DD/MM/YYYY")
           ))
         : selectedProject === "INBOX" || selectedProject === 0
-        ? (unsubscribe = unsubscribe.where("data", "==", ""))
+        ? (unsubscribe = unsubscribe.where("date", "==", ""))
         : unsubscribe;
 
-    unsubscribe = unsubscribe.onSnapshot((snapShot) => {
-      const newTasks = snapShot.docs.map((task) => ({
+    unsubscribe = unsubscribe.onSnapshot((snapshot) => {
+      const newTasks = snapshot.docs.map((task) => ({
         id: task.id,
         ...task.data(),
       }));
+
       setTasks(
         selectedProject === "NEXT_7"
           ? newTasks.filter(
@@ -40,11 +43,12 @@ export const useTasks = (selectedProject) => {
             )
           : newTasks.filter((task) => task.archived !== true)
       );
-
       setArchivedTasks(newTasks.filter((task) => task.archived !== false));
     });
-    return unsubscribe();
+
+    return () => unsubscribe();
   }, [selectedProject]);
+
   return { tasks, archivedTasks };
 };
 
@@ -55,24 +59,20 @@ export const useProjects = () => {
     firebase
       .firestore()
       .collection("projects")
-      .where("userId", "==", "7yFLIr7XSqGRvxmcfhId")
+      .where("userId", "==", userId)
       .orderBy("projectId")
       .get()
-      .then(
-        (snapShot) => {
-          const allProjects = snapShot.docs.map((project) => ({
-            ...project.data(),
-            docId: project.id,
-          }));
+      .then((snapshot) => {
+        const allProjects = snapshot.docs.map((project) => ({
+          ...project.data(),
+          docId: project.id,
+        }));
 
-          // only update the projects if
-          if (JSON.stringify(allProjects !== JSON.stringify(projects))) {
-            setProjects(allProjects);
-          }
-        },
-        [projects]
-      );
+        if (JSON.stringify(allProjects) !== JSON.stringify(projects)) {
+          setProjects(allProjects);
+        }
+      });
+  }, [projects]);
 
-    return { projects, setProjects };
-  });
+  return { projects, setProjects };
 };

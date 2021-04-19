@@ -4,4 +4,17 @@ import {
   useProjectsValue,
 } from "./projects-context";
 
-export { ProjectsContext, ProjectsProvider, useProjectsValue };
+import {
+  SelectedProjectContext,
+  SelectedProjectsProvider,
+  useSelectedProjectsValue,
+} from "./selected-projects-context";
+
+export {
+  ProjectsContext,
+  ProjectsProvider,
+  useProjectsValue,
+  SelectedProjectContext as SelectedProjectsContext,
+  SelectedProjectsProvider,
+  useSelectedProjectsValue,
+};
